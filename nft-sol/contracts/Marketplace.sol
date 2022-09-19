@@ -88,7 +88,7 @@ contract Marketplace is ReentrancyGuard{
     /// @param _tokenid the id of the nft to be listed
     function listnft(uint _price, address _nftaddress, uint _tokenid) external payable nonReentrant returns(uint256) {
         /// check if the msg.sender is the owner of the token
-        if (nftContract.ownerOf(_tokenid != msg.sender) {
+        if (nftContract.ownerOf(_tokenid != msg.sender) ){
             revert Notnftowner();
         }
         if ( _price < 0) {
@@ -131,12 +131,22 @@ contract Marketplace is ReentrancyGuard{
     }
 
 
-    function getunsoldnft() external return(Nftdetail[] memory){
+    // function getunsoldnft() external returns(Nftdetail[] memory){
 
-    }
+    // }
 
     function _checkRoyalties(address _contract) internal returns (bool) {
         bool success = IERC165(_contract).supportsInterface(0x2a55205a);
         return success;
     }
+
+    function _getroyalties(uint tokenid, uint price , address nftaddress) internal returns(uint netprice){
+        bool implement = _checkRoyalties(nftaddress);
+        require(implement == true, "does implements");
+        (address royalityreceiver, uint amountofroyalties) = nftaddress.royaltyInfo(tokenid, price);
+        uint sellermoney = price - amountofroyalties;
+        (bool sent,) = payable(royalityreceiver).call{value: amountofroyalties}("");
+        require(sent == true, "failed");
+        return sellermoney;
+    }    
 }
