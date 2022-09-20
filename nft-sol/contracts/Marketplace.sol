@@ -120,6 +120,10 @@ contract Marketplace is ReentrancyGuard{
         }
         uint saleprice = msg.value;
         uint seller = ND.seller;
+        address nftaddress = ND.nftaddress;
+        if (nftcreatortip > 0 ){
+            uint nftcreatortip = _getroyalties(_tokenid,saleprice, nftaddress);
+        }
         (bool sent,) = payable(seller).call{value:saleprice}("");
         require(sent == true, failed);
         (bool sent,) = payable(owner).call{value:listingprice}("");
@@ -148,5 +152,65 @@ contract Marketplace is ReentrancyGuard{
         (bool sent,) = payable(royalityreceiver).call{value: amountofroyalties}("");
         require(sent == true, "failed");
         return sellermoney;
-    }    
+    }  
+
+     function fetchMarketItems() public view returns (Nftdetail[] memory) {
+        uint256 itemCount = nftkey.current();
+        uint256 unsoldItemCount = nftkey.current() - nftsold.current();
+        Nftdetail[] memory items = new Nftdetail[](unsoldItemCount);
+        for (uint256 i = 0; i < itemCount; i++) {
+            if (NFTDetails[i + 1].sold == false) {
+                uint256 currentId = i + 1;
+                Nftdetail storage currentItem  =NFTDetails[currentId];
+                items.push(currentItem);
+            }
+        }
+        return items;
+    }
+
+    /* Returns only items that a user has purchased */
+    function fetchMyNFTs() public view returns (Nftdetail[] memory) {
+        uint256 totalItemCount = nftkey.current();
+        uint256 itemCount = 0;
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            if (NFTDetails[i + 1].owner == msg.sender) {
+                itemCount += 1;
+            }
+        }
+
+        Nftdetail[] memory items = new Nftdetail[](itemCount);
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            if (NFTDetails[i + 1].owner == msg.sender) {
+                uint256 currentId = i + 1;
+                Nftdetail storage currentItem  =NFTDetails[currentId];
+                items.push(currentItem);
+            }
+        }
+        return items;
+    }
+
+    /* Returns only items a user has created */
+    function fetchItemsCreated() public view returns (Nftdetail[] memory) {
+        uint256 totalItemCount = nftkey.current();
+        uint256 itemCount = 0;
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            if (NFTDetails[i + 1].seller == msg.sender) {
+                itemCount += 1;
+            }
+        }
+
+        Nftdetail[] memory items = new Nftdetail[](itemCount);
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            if (NFTDetails[i + 1].seller == msg.sender) {
+                uint256 currentId = i + 1;
+                Nftdetail storage currentItem = NFTDetails[currentId];
+                items.push(currentItem);
+            }
+        }
+        return items;
+    }  
 }
