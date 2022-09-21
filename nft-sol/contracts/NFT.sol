@@ -61,7 +61,7 @@ contract NFT is ERC721Enumerable, ERC2981{
     }
 
     function royaltyInfo(uint256 _tokenId, uint256 _salePrice) public view  override returns (address, uint256) {
-        uint royaltyAmount = _salePrice * (2/100);
+        uint royaltyAmount = (_salePrice * 2) / 100;
         return (royaltyreceiver, royaltyAmount);
     }
 }

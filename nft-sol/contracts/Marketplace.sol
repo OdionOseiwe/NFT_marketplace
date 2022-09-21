@@ -1,30 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
-interface IERC721{
-       function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
-}
-
-interface IERC165{
-    function supportsInterface(bytes4 interfaceId) external returns (bool);
-}
-
-import "@openzeppelin/contracts/token/common/ERC2981.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-contract Marketplace is ReentrancyGuard{
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
+
+interface IERC2981{
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice) external returns (address, uint256) ;
+}
+
+contract Marketplace is ReentrancyGuard, IERC721Receiver{
     /////////////////////////////////////////////////////////////////////STATE VARIABLES////////////////////////////////////////////////////////
-    using Counters for Counters.Counter;
-    Counters.Counter private nftsold;
-    Counters.Counter private nftkey;
+    uint256 private nftsold;
+    uint256 private nftkey;
     address owner;
     uint256 listingprice;
-    uint nftsold;
    
     
     ///////////////////////////////////////////////////////////////////////////STRUCT/////////////////////////////////////////////////////////
@@ -88,17 +79,17 @@ contract Marketplace is ReentrancyGuard{
     /// @param _tokenid the id of the nft to be listed
     function listnft(uint _price, address _nftaddress, uint _tokenid) external payable nonReentrant returns(uint256) {
         /// check if the msg.sender is the owner of the token
-        if (nftContract.ownerOf(_tokenid != msg.sender) ){
+        if (IERC721(_nftaddress).ownerOf(_tokenid) != msg.sender){
             revert Notnftowner();
         }
-        if ( _price < 0) {
+        if ( _price <= 0) {
             revert Zeroprice();
         }
-        if ( msg.value <= listingprice) {
+        if ( msg.value < listingprice) {
             revert Listingprice();
         }
-        nftkey.increment();
-        uint256 key = nftkey.current();
+        nftkey = nftkey + 1;
+        uint256 key = nftkey;
         Nftdetail storage ND = NFTDetails[key];
         ND.seller = payable(msg.sender);
         ND.price = _price;
@@ -112,6 +103,8 @@ contract Marketplace is ReentrancyGuard{
         return key;
     }
 
+    /// @dev a  user comes to buy an nft
+    /// @param _tokenid nftid to buy
     function buynft(uint _tokenid) payable external {
         Nftdetail storage ND = NFTDetails[_tokenid];
         require(ND.sold != true, "already sold");
@@ -119,25 +112,17 @@ contract Marketplace is ReentrancyGuard{
             revert insufficientfunds();
         }
         uint saleprice = msg.value;
-        uint seller = ND.seller;
+        address seller = ND.seller;
         address nftaddress = ND.nftaddress;
-        if (nftcreatortip > 0 ){
-            uint nftcreatortip = _getroyalties(_tokenid,saleprice, nftaddress);
-        }
         (bool sent,) = payable(seller).call{value:saleprice}("");
-        require(sent == true, failed);
-        (bool sent,) = payable(owner).call{value:listingprice}("");
-        require(sent == true, failed);
-        IERC721(_nftaddress).safeTransferFrom(address(this), msg.sender,_tokenid);
+        require(sent == true, "failed");
+        (bool sent2,) = payable(owner).call{value:listingprice}("");
+        require(sent2 == true, "failed");
+        IERC721(nftaddress).safeTransferFrom(address(this), msg.sender,_tokenid);
         ND.buyer = payable(msg.sender);
         ND.sold = true;
-        nftsold.increment();
+        nftsold  = nftsold + 1;
     }
-
-
-    // function getunsoldnft() external returns(Nftdetail[] memory){
-
-    // }
 
     function _checkRoyalties(address _contract) internal returns (bool) {
         bool success = IERC165(_contract).supportsInterface(0x2a55205a);
@@ -147,7 +132,7 @@ contract Marketplace is ReentrancyGuard{
     function _getroyalties(uint tokenid, uint price , address nftaddress) internal returns(uint netprice){
         bool implement = _checkRoyalties(nftaddress);
         require(implement == true, "does implements");
-        (address royalityreceiver, uint amountofroyalties) = nftaddress.royaltyInfo(tokenid, price);
+        (address royalityreceiver, uint amountofroyalties) = IERC2981(nftaddress).royaltyInfo(tokenid, price);
         uint sellermoney = price - amountofroyalties;
         (bool sent,) = payable(royalityreceiver).call{value: amountofroyalties}("");
         require(sent == true, "failed");
@@ -155,14 +140,16 @@ contract Marketplace is ReentrancyGuard{
     }  
 
      function fetchMarketItems() public view returns (Nftdetail[] memory) {
-        uint256 itemCount = nftkey.current();
-        uint256 unsoldItemCount = nftkey.current() - nftsold.current();
+        uint256 itemCount = nftkey;
+         uint256 currentIndex = 0;
+        uint256 unsoldItemCount = nftkey- nftsold;
         Nftdetail[] memory items = new Nftdetail[](unsoldItemCount);
         for (uint256 i = 0; i < itemCount; i++) {
             if (NFTDetails[i + 1].sold == false) {
                 uint256 currentId = i + 1;
                 Nftdetail storage currentItem  =NFTDetails[currentId];
-                items.push(currentItem);
+                items[currentIndex] = currentItem;
+                currentIndex += 1;
             }
         }
         return items;
@@ -170,22 +157,23 @@ contract Marketplace is ReentrancyGuard{
 
     /* Returns only items that a user has purchased */
     function fetchMyNFTs() public view returns (Nftdetail[] memory) {
-        uint256 totalItemCount = nftkey.current();
+        uint256 totalItemCount = nftkey;
         uint256 itemCount = 0;
         uint256 currentIndex = 0;
 
         for (uint256 i = 0; i < totalItemCount; i++) {
-            if (NFTDetails[i + 1].owner == msg.sender) {
+            if (NFTDetails[i + 1].buyer == msg.sender) {
                 itemCount += 1;
             }
         }
 
         Nftdetail[] memory items = new Nftdetail[](itemCount);
         for (uint256 i = 0; i < totalItemCount; i++) {
-            if (NFTDetails[i + 1].owner == msg.sender) {
+            if (NFTDetails[i + 1].buyer == msg.sender) {
                 uint256 currentId = i + 1;
                 Nftdetail storage currentItem  =NFTDetails[currentId];
-                items.push(currentItem);
+                items[currentIndex] = currentItem;
+                currentIndex += 1;
             }
         }
         return items;
@@ -193,7 +181,7 @@ contract Marketplace is ReentrancyGuard{
 
     /* Returns only items a user has created */
     function fetchItemsCreated() public view returns (Nftdetail[] memory) {
-        uint256 totalItemCount = nftkey.current();
+        uint256 totalItemCount = nftkey;
         uint256 itemCount = 0;
         uint256 currentIndex = 0;
 
@@ -208,9 +196,19 @@ contract Marketplace is ReentrancyGuard{
             if (NFTDetails[i + 1].seller == msg.sender) {
                 uint256 currentId = i + 1;
                 Nftdetail storage currentItem = NFTDetails[currentId];
-                items.push(currentItem);
+                items[currentIndex] = currentItem;
+                currentIndex += 1;
             }
         }
         return items;
     }  
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external returns (bytes4){
+        return type(IERC721Receiver).interfaceId;
+        }
 }
