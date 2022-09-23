@@ -57,24 +57,35 @@ describe("NFT", function () {
       await nft.approve(market.address, 1);
       // list market item
       await market.listnft(price,nft.address,1,{value:listing});
+      // fetching nfts
+      let all = await market.fetchMarketItems();  // how to get all nft with except
+      console.log("fffffffffffffffffffffffffffffffffffffffff",all);
       // balance before
       const balanceofsellerbefore= await ethers.provider.getBalance(owner.address);
       console.log("this is the sellers balance before transfer", balanceofsellerbefore);
       // buy an item
+      let prevBal = await ethers.provider.getBalance(owner.address);
       const buy =  ethers.utils.parseEther("0.5");
       await market.connect(otherAccount).buynft(1, {value: buy});
       // get balance of buyer
-      let balanceofbuyer = await nft.balanceOf(otherAccount.address);
-      console.log(balanceofbuyer ,"nft tokenid");
+      expect(await nft.balanceOf(otherAccount.address)).to.equal("1");
       // get balance of seller
-      const balanceofseller= await ethers.provider.getBalance(owner.address);
-      console.log("thi is the sellers balance", balanceofseller);
+      let mynft =await market.connect(otherAccount.address).fetchMyNFTs();
+      console.log("my nftttttttttttttttttttttttttttttttt",mynft);
+      //expect(await ethers.provider.getBalance(owner.address)).to.equal(ethers.utils.parseEther("10000.5"));
+     
     });
+
+     //////////////////////////////////////////////////////check why royalty is failing/////////////////////////////
+  
   });
   describe("setprice", function(){
     it("setslistingprice", async function(){
       const { market, otherAccount} = await loadFixture(deployment);
       await expect( market.connect(otherAccount).setlistingprice(2)).to.be.revertedWith("not owner");
     })
+  });
+  describe("fetching all nfts", function(){
+    
   });
 });

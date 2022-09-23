@@ -118,6 +118,7 @@ contract Marketplace is ReentrancyGuard, IERC721Receiver{
         require(sent == true, "failed");
         (bool sent2,) = payable(owner).call{value:listingprice}("");
         require(sent2 == true, "failed");
+        // _getroyalties(_tokenid,saleprice,nftaddress);
         IERC721(nftaddress).safeTransferFrom(address(this), msg.sender,_tokenid);
         ND.buyer = payable(msg.sender);
         ND.sold = true;
