@@ -59,6 +59,9 @@ describe("NFT", function () {
       await market.listnft(price,nft.address,1,{value:listing});
       // fetching nfts
       let all = await market.fetchMarketItems();  // how to get all nft with except
+
+      expect(await market.fetchMarketItems()).length.to.be.greaterThan(0);
+
       console.log("fffffffffffffffffffffffffffffffffffffffff",all);
       // balance before
       const balanceofsellerbefore= await ethers.provider.getBalance(owner.address);
@@ -73,7 +76,6 @@ describe("NFT", function () {
       let mynft =await market.connect(otherAccount.address).fetchMyNFTs();
       console.log("my nftttttttttttttttttttttttttttttttt",mynft);
       //expect(await ethers.provider.getBalance(owner.address)).to.equal(ethers.utils.parseEther("10000.5"));
-     
     });
 
      //////////////////////////////////////////////////////check why royalty is failing/////////////////////////////
