@@ -204,11 +204,6 @@ contract Marketplace is ReentrancyGuard, IERC721Receiver{
         return items;
     }
 
-    uint num= 70000; 
-
-    function getname() external view returns(uint) {
-        return num;
-    }
 
     function onERC721Received(
         address operator,

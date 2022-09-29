@@ -8,12 +8,12 @@ import {
   RainbowKitProvider
 } from "@rainbow-me/rainbowkit";
 import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
-import { alchemyProvider } from "wagmi/providers/alchemy";
+import { infuraProvider } from "wagmi/providers/infura";
 import { publicProvider } from "wagmi/providers/public";
 
 const { chains, provider } = configureChains(
-  [chain.rinkeby, chain.goerli, chain.ropsten, chain.arbitrum ,chain.kovan],
-  [alchemyProvider({ apiKey: "https://eth-goerli.g.alchemy.com/v2/cZArJ5hDwpU8r_6CXv9KbYMJWUtrr3qS"}), publicProvider()]
+  [chain.rinkeby, chain.goerli, chain.ropsten, chain.arbitrum ,chain.kovan , chain.polygonMumbai],
+  [infuraProvider({ apiKey: "https://polygon-mumbai.infura.io/v3/625725aff2fc4b10af162d3804eb52e5"}), publicProvider()]
 );
 
 const { connectors } = getDefaultWallets({

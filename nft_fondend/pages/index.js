@@ -3,19 +3,34 @@ import { useEffect,useState } from 'react';
 import axios from 'axios';
 import web3Modal from "web3modal";
 import {nftaddress,marketplaceaddress} from '../address';
-import NFT from '../artifacts/contracts/NFT.sol/NFT.json';
+import NFT from '../artifacts/contracts/NFT.sol/NARUTO.json';
 import MARKET from '../artifacts/contracts/Marketplace.sol/Marketplace.json'
-import { useContractRead } from 'wagmi'
+import { useContractRead ,useConnect, useAccount, useNetwork} from 'wagmi'
 
 
 
 export default function Home() {
   const { data, isError, isLoading } = useContractRead({
-    addressOrName: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-    contractInterface: MARKET,
-    functionName: 'getname',
+    addressOrName: '0x45205E53BB788E954fC0753e4CBC7bEF5d1c62d2',
+    contractInterface: NFT,
+    functionName: 'symbol',
    
   })
+
+  const{} = useConnect({
+
+  })
+
+  const {address, isConnected} = useAccount({
+
+  })
+
+  const { chain, chains} = useNetwork();
+
+console.log(chain, "chain");
+
+  console.log(address, isConnected);
+
   console.log(data, isError, isLoading);
 
   return (
