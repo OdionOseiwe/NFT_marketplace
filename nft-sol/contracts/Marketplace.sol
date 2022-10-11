@@ -156,6 +156,10 @@ contract Marketplace is ReentrancyGuard, IERC721Receiver{
         return items;
     }
 
+    function getlistingprice() external view returns(uint256) {
+        return listingprice;
+    }
+
     /* Returns only items that a user has purchased */
     function fetchMyNFTs() public view returns (Nftdetail[] memory) {
         uint256 totalItemCount = nftkey;
